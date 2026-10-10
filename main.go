@@ -1,23 +1,22 @@
 package main
 
 import (
-	"bufio"   // Для построчного чтения файла
-	"fmt"     // Для вывода сообщений в консоль
-	"os"      // Для работы с файлами и открытия FASTA
-	"strings" // Для работы со строками и преобразования в верхний регистр
+	"bufio"   
+	"fmt"     
+	"os"     
+	"strings"
 )
 
-// dnaStats хранит статистику по нуклеотидам ДНК.
+
 type dnaStats struct {
-	total int // Общее количество валидных букв
-	a     int // Сколько букв A
-	t     int // Сколько букв T
-	c     int // Сколько букв C
-	g     int // Сколько букв G
+	total int 
+	a     int
+	t     int 
+	c     int 
+	g     int 
 }
 
-// Таблица кодонов (генетический код)
-// Полная таблица генетического кода (мРНК → аминокислота)
+
 var codonTable = map[string]string{
 	// Фенилаланин
 	"UUU": "F", "UUC": "F",
@@ -112,18 +111,18 @@ func analyzeProtein(protein string) {
 }
 func translate(rna string) string {
 	protein := ""
-	// Шагаем по строке РНК строго по 3 буквы
+	
 	for i := 0; i < len(rna)-2; i += 3 {
 		codon := rna[i : i+3]
 
-		// Ищем аминокислоту в таблице
+		
 		amino, exists := codonTable[codon]
 		if !exists {
-			protein += "?" // Если кодон неизвестен
+			protein += "?" 
 			continue
 		}
 
-		// Если наткнулись на Стоп-кодон — мгновенно останавливаемся!
+		
 		if amino == "Stop" {
 			break
 		}
@@ -133,20 +132,18 @@ func translate(rna string) string {
 	return protein
 }
 
-// findORF ищет первый старт-кодон ATG и затем идёт по кодонам по 3 нуклеотида
-// до первого стоп-кодона TAA, TAG или TGA.
-// Возвращает: (кодирующая последовательность, начало_в_1-based, конец_в_1-based).
+
 func findORF(dna string) (string, int, int) {
 	cleanDNA := strings.ToUpper(dna)
 
 	for i := 0; i+2 < len(cleanDNA); i++ {
 		if cleanDNA[i] == 'A' && cleanDNA[i+1] == 'T' && cleanDNA[i+2] == 'G' {
-			start := i + 1 // 1-based индекс старт-кодона
+			start := i + 1
 
 			for j := i + 3; j+2 < len(cleanDNA); j += 3 {
 				codon := cleanDNA[j : j+3]
 				if codon == "TAA" || codon == "TAG" || codon == "TGA" {
-					return cleanDNA[i : j+3], start, j + 3 // j+3 — 1-based индекс последнего нуклеотида стоп-кодона
+					return cleanDNA[i : j+3], start, j + 3 
 				}
 			}
 
@@ -159,16 +156,16 @@ func findORF(dna string) (string, int, int) {
 	return "", 0, 0
 }
 
-// getReverseComplement строит обратную комплементарную цепь ДНК.
+
 func getReverseComplement(dna string) string {
 	runes := []rune(dna)
 
-	// Переворачиваем строку задом наперёд.
+
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 
-	// Заменяем каждую букву на комплементарную.
+
 	for i, r := range runes {
 		switch r {
 		case 'A':
@@ -187,7 +184,7 @@ func getReverseComplement(dna string) string {
 	return string(runes)
 }
 
-// truncateDNA ограничивает строку до нужной длины и добавляет многоточие.
+
 func truncateDNA(seq string, limit int) string {
 	if len(seq) <= limit {
 		return seq
@@ -195,7 +192,6 @@ func truncateDNA(seq string, limit int) string {
 	return seq[:limit] + "..."
 }
 
-// splicing удаляет все строчные буквы (интроны) и оставляет только заглавные (экзоны).
 func splicing(dna string) string {
 	var b strings.Builder
 	for _, r := range dna {
@@ -217,7 +213,7 @@ func removeTransposon(dna string) (string, bool) {
 	return strings.ReplaceAll(dna, "GGGGGGCCCCCC", ""), true
 }
 
-// countDNAStats считает количество A/T/C/G в строке.
+
 func countDNAStats(dna string) dnaStats {
 	stats := dnaStats{}
 	for _, r := range strings.ToUpper(dna) {
@@ -240,7 +236,7 @@ func countDNAStats(dna string) dnaStats {
 }
 
 func main() {
-	// ANSI-коды для цветного вывода
+	
 	purple := "\u001b[35m"
 	green := "\u001b[32m"
 	cyan := "\u001b[36m"
@@ -248,7 +244,7 @@ func main() {
 
 	fmt.Printf("%sBIOGO-CORE v1.3%s\n", purple, reset)
 
-	// Открываем файл с последовательностью ДНК
+	
 	file, err := os.Open("gfp_bloated.fasta")
 	if err != nil {
 		fmt.Println("Не удалось открыть файл:", err)
@@ -258,7 +254,7 @@ func main() {
 
 	fmt.Printf("%s[SUCCESS] Файл gfp_bloated.fasta успешно прочитан.%s\n", green, reset)
 
-	// Считываем файл построчно, убирая заголовок и переносы строк
+
 	scanner := bufio.NewScanner(file)
 	var dnaSequence strings.Builder
 	position := 0
@@ -276,7 +272,7 @@ func main() {
 			position++
 			switch r {
 			case 'A', 'T', 'C', 'G':
-				// валидный нуклеотид
+	
 			default:
 				fmt.Printf("Обнаружен мусорный символ %c на позиции %d\n", r, position)
 			}
